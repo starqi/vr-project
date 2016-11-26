@@ -2,119 +2,46 @@
 using UnityEngine.UI;
 using UnityEngine.Audio;
 using System.Collections.Generic;
+using System.Linq;
 
-// Turns the QWERTY keyboard into a piano by overlaying it with AR key objects
-public class QwertyPianoController : MonoBehaviour
+// Implements a piano
+public class QwertyPianoController : InstrumentController
 {
+    public static string usedKeys = "zxcvbnm,./asdfghjkl;wetyuop2356790";
+    public static byte[] semitones = { 0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 1, 3, 6, 8, 10, 13, 15, 1, 3, 6, 8, 10, 13, 15 };
+    public static string isBlack = "0000000000000000000011111111111111";
+    public static int semitoneShift = -12;
+
+    static Dictionary<char, byte> semitoneLookup = new Dictionary<char, byte>();
+    static Dictionary<char, bool> isWhiteLookup = new Dictionary<char, bool>();
+    static QwertyPianoController()
+    {
+        Debug.Assert(usedKeys.Length == semitones.Length && usedKeys.Length == isBlack.Length);
+        for (byte i = 0; i < usedKeys.Length; ++i)
+        {
+            semitoneLookup[usedKeys[i]] = semitones[i];
+            isWhiteLookup[usedKeys[i]] = isBlack[i] == '0';
+        }
+    }
+
     public AudioClip clip;
     public AudioMixerGroup mixerGroup;
-    public Text text; // Text to display information to user
-    public GameObject finger; // The finger used to find the positions of the keys
-    public GameObject leftHand, rightHand;
 
-    static KeyCode setupKey = KeyCode.F1;
-    // TODO: Implement for non-alphanumeric
-    static string semitones = "q2w3er5t6y7ui9o0p";
-    static string isWhite = "10101101010110101";
-
-    AudioSource[] sources;
-    List<GameObject> keys = new List<GameObject>(); // The 3D key objects
-    bool isSetup = false;
-
-    void Start()
+    public override Note GetNote(char c)
     {
-        // Make a sound source and a null object reference for each key
-        for (int i = 0; i < semitones.Length; ++i)
+        byte semitone;
+        if (semitoneLookup.TryGetValue(c, out semitone))
         {
-            gameObject.AddComponent<AudioSource>();
-            keys.Add(null);
-        }
-
-        sources = GetComponents<AudioSource>();
-
-        // Setup each key
-        for (int i = 0; i < semitones.Length; ++i)
-        {
-            sources[i].pitch = Mathf.Pow(2.0f, i / 12.0f);
-            sources[i].playOnAwake = false; // This is by default true
-            sources[i].clip = clip;
-            sources[i].outputAudioMixerGroup = mixerGroup;
-        }
-    }
-
-    void Update()
-    {
-        if (Input.GetKeyDown(setupKey))
-        {
-            isSetup = !isSetup;
-            if (isSetup)
-            {
-                text.text = "Setup mode";
-            }
-            else
-            {
-                text.text = "";
-                GameObject.Destroy(leftHand);
-                GameObject.Destroy(rightHand);
-            }
-        }
-        
-
-        for (int i = 0; i < semitones.Length; ++i)
-        {
-            if (Input.GetKeyDown(semitones[i].ToString()))
-            {
-                if (isSetup)
-                {
-                    sources[i].Play();
-                    MakeKey(i);
-                }
-                else
-                {
-                    sources[i].Play();
-                }
-
-                // Animate the key press
-                if (keys[i] != null)
-                {
-                    keys[i].transform.Translate(new Vector3(0.0f, -0.05f, 0.0f), Space.World);
-                }
-            }
-            else if (Input.GetKeyUp(semitones[i].ToString()))
-            {
-                // Animate the key release
-                if (keys[i] != null)
-                {
-                    keys[i].transform.Translate(new Vector3(0.0f, 0.05f, 0.0f), Space.World);
-                }
-            }
-        }
-    }
-
-    void MakeKey(int semitone)
-    {
-        // Replace the existing key
-
-        if (keys[semitone] != null)
-        {
-            GameObject.Destroy(keys[semitone]);
-        }
-
-        // Make the object
-
-        var keyObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        keyObj.name = "key" + semitone;
-        keyObj.transform.position = finger.transform.position;
-        keyObj.transform.localScale = new Vector3(0.02f, 0.03f, 0.05f);
-        keys[semitone] = keyObj;
-
-        if (isWhite[semitone] == '1')
-        {
-            keyObj.GetComponent<MeshRenderer>().material.color = Color.white;
+            Note note = new Note();
+            note.clip = clip;
+            note.mixerGroup = mixerGroup;
+            note.color = isWhiteLookup[c] ? Color.white : Color.black;
+            note.semitone = semitone + semitoneShift;
+            return note;
         }
         else
         {
-            keyObj.GetComponent<MeshRenderer>().material.color = Color.black;
+            return null;
         }
     }
 }
