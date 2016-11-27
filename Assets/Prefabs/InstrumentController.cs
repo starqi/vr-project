@@ -12,6 +12,7 @@ public class Note
     public AudioMixerGroup mixerGroup { get; set; }
     public int semitone { get; set; }
     public Color color { get; set; }
+    public Material material { get; set; }
 }
 
 // The script for a single key game object
@@ -19,15 +20,11 @@ public class KeyController : MonoBehaviour
 {
     public List<GameObject> dupes; // List of keys with same semitone as this one
 
-    Material material;
-    Color savedColor;
-    AudioSource source; // Each key has its own audio source created by InstrumentController
-    // Null means it is an unuseable key
+    AudioSource source; // Each key has its own audio source created by InstrumentController, null means it is an unuseable key
 
     void Start()
     {
         source = GetComponent<AudioSource>();
-        material = GetComponent<MeshRenderer>().material;
     }
 
     public void Play()
@@ -35,15 +32,12 @@ public class KeyController : MonoBehaviour
         if (source == null) return;
         // Play sound and animate every duplicate key
         source.Play();
-        savedColor = material.color;
-        material.color = Color.red;
         dupes.ForEach(a => a.transform.Translate(0.0f, -InstrumentController.downShift, 0.0f, Space.Self));
     }
 
     public void Release()
     {
         if (source == null) return;
-        material.color = savedColor;
         // Animate every duplicate key
         dupes.ForEach(a => a.transform.Translate(0.0f, InstrumentController.downShift, 0.0f, Space.Self));
     }
@@ -55,8 +49,8 @@ public abstract class InstrumentController : MonoBehaviour
     public static int keyRows = 4, keyColumns = 10;
     public static string order = "1234567890qwertyuiopasdfghjkl;zxcvbnm,./";
     public static byte[] ascii = Encoding.ASCII.GetBytes(order);
-    public static float keyWidth = 0.05f, rowShift = 0.018f, downShift = 0.01f, fillWidth = keyWidth + 0.002f, inactiveDrop = downShift * 3.0f;
-    public static Color noNoteColor = Color.grey;
+    public static float keyWidth = 0.25f, rowShift = 0.09f, downShift = 0.05f, fillWidth = keyWidth + 0.01f, inactiveDrop = downShift;
+    public static Color noNoteColor = new Color(0.05f, 0.01f, 0.01f);
 
     // The instrument specific implementation
     public abstract Note GetNote(char c);
@@ -93,7 +87,9 @@ public abstract class InstrumentController : MonoBehaviour
                 cube.transform.parent = gameObject.transform;
                 cube.transform.localScale = new Vector3(keyWidth, keyWidth, keyWidth);
                 cube.transform.localPosition = new Vector3(i * rowShift + j * fillWidth, note == null ? -inactiveDrop : 0.0f, -i * fillWidth);
-                cube.GetComponent<MeshRenderer>().material.color = note == null ? noNoteColor : note.color;
+                var meshRend = cube.GetComponent<MeshRenderer>();
+                if (note != null && note.material != null) meshRend.material = note.material;
+                meshRend.material.color = note == null ? noNoteColor : note.color;
                 objLookup[keyCode] = cube;
 
                 // Add a controller
@@ -118,6 +114,8 @@ public abstract class InstrumentController : MonoBehaviour
                     keySrc.playOnAwake = false; // This is by default true
                     keySrc.clip = note.clip;
                     keySrc.outputAudioMixerGroup = note.mixerGroup;
+                    keySrc.spatialize = true;
+                    keySrc.spatialBlend = 1.0f;
                 }
 
                 counter++;

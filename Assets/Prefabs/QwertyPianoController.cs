@@ -26,6 +26,7 @@ public class QwertyPianoController : InstrumentController
 
     public AudioClip clip;
     public AudioMixerGroup mixerGroup;
+    public Material material = null;
 
     public override Note GetNote(char c)
     {
@@ -35,8 +36,9 @@ public class QwertyPianoController : InstrumentController
             Note note = new Note();
             note.clip = clip;
             note.mixerGroup = mixerGroup;
-            note.color = isWhiteLookup[c] ? Color.white : Color.black;
+            note.color = isWhiteLookup[c] ? Color.white : Color.Lerp(Color.black, Color.grey, 0.8f);
             note.semitone = semitone + semitoneShift;
+            note.material = material;
             return note;
         }
         else

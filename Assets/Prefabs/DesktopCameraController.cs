@@ -11,21 +11,28 @@ public class DesktopCameraController : MonoBehaviour
         Quaternion ry = Quaternion.AngleAxis(-ySpeed * Input.GetAxis("Mouse Y"), Camera.main.transform.right);
         Camera.main.transform.rotation = rx * ry * Camera.main.transform.rotation;
 
+        Vector3 forwardProj = Camera.main.transform.forward;
+        forwardProj.y = 0.0f;
+        forwardProj.Normalize();
+        Vector3 rightProj = Camera.main.transform.right;
+        rightProj.y = 0.0f;
+        rightProj.Normalize();
+
         if (Input.GetKey(KeyCode.UpArrow))
         {
-            Camera.main.transform.position += Camera.main.transform.forward * Time.deltaTime;
+            Camera.main.transform.position += forwardProj * Time.deltaTime;
         }
         else if (Input.GetKey(KeyCode.DownArrow))
         {
-            Camera.main.transform.position -= Camera.main.transform.forward * Time.deltaTime;
+            Camera.main.transform.position -= forwardProj * Time.deltaTime;
         }
         else if (Input.GetKey(KeyCode.LeftArrow))
         {
-            Camera.main.transform.position -= Camera.main.transform.right * Time.deltaTime;
+            Camera.main.transform.position -= rightProj * Time.deltaTime;
         }
         else if (Input.GetKey(KeyCode.RightArrow))
         {
-            Camera.main.transform.position += Camera.main.transform.right * Time.deltaTime;
+            Camera.main.transform.position += rightProj * Time.deltaTime;
         }
     }
 }

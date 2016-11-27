@@ -94,39 +94,57 @@
     <Reference Include="SyntaxTree.VisualStudio.Unity.Bridge">
       <HintPath>Library\UnityAssemblies\SyntaxTree.VisualStudio.Unity.Bridge.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>Assets\Photon Unity Networking\Editor\PhotonNetwork\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Photon3Unity3D">
+      <HintPath>Assets\Plugins\Photon3Unity3D.dll</HintPath>
+    </Reference>
+    <Reference Include="websocket-sharp">
+      <HintPath>Assets\Plugins\WebSocket\websocket-sharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="vr-project.CSharp.Plugins.csproj">
+      <Project>{2F93F476-898F-25CA-6A6A-8FCE4E3D1884}</Project>
+      <Name>vr-project.CSharp.Plugins</Name>
+    </ProjectReference>
     <ProjectReference Include="vr-project.CSharp.csproj">
       <Project>{5CDFF772-A4DB-5F6A-E4F8-5A2E3FE1024D}</Project>
       <Name>vr-project.CSharp</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\LeapMotion\Editor\CustomEditorBase.cs" />
-    <Compile Include="Assets\LeapMotion\Editor\LeapHandControllerEditor.cs" />
-    <Compile Include="Assets\LeapMotion\Editor\LeapImageRetrieverEditor.cs" />
-    <Compile Include="Assets\LeapMotion\Editor\LeapServiceProviderEditor.cs" />
-    <Compile Include="Assets\LeapMotion\Editor\Tests\FrameValidator.cs" />
-    <Compile Include="Assets\LeapMotion\Editor\Tests\HandFactoryTest.cs" />
-    <Compile Include="Assets\LeapMotion\Editor\Tests\TransformCopyTest.cs" />
-    <Compile Include="Assets\LeapMotion\Scripts\Algorithms\Editor\Tests\SlidingMaxTest.cs" />
-    <Compile Include="Assets\LeapMotion\Scripts\Attributes\Editor\CombinablePropertyDrawer.cs" />
-    <Compile Include="Assets\LeapMotion\Scripts\DataStructures\Editor\Tests\RingBufferTest.cs" />
-    <Compile Include="Assets\LeapMotion\Scripts\VR\Editor\EyeTypeEditor.cs" />
-    <Compile Include="Assets\LeapMotion\Scripts\VR\Editor\LeapTemporalWarpingEditor.cs" />
-    <Compile Include="Assets\LeapMotionModules\Hands\Scripts\Editor\LeapHandsAutoRigEditor.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Demos\DemoHub\Editor\PunStartup.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\AccountService.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\CullAreaEditor.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\PhotonConverter.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\PhotonEditor.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\PhotonGUI.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\PhotonViewHandler.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\PhotonViewInspector.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\PhotonViewPrefabApply.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\PunSceneSettings.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\ReorderableListResources.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\ServerSettingsInspector.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\Views\PhotonAnimatorViewEditor.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\Views\PhotonRigidbody2DViewEditor.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\Views\PhotonRigidbodyViewEditor.cs" />
+    <Compile Include="Assets\Photon Unity Networking\Editor\PhotonNetwork\Views\PhotonTransformViewEditor.cs" />
+    <Compile Include="Assets\Photon Unity Networking\UtilityScripts\PhotonPlayer\Editor\PlayerRoomIndexingInspector.cs" />
+    <Compile Include="Assets\Photon Unity Networking\UtilityScripts\PhotonPlayer\Editor\PunTeamsInspector.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\LeapMotion\Dependencies.txt" />
-    <None Include="Assets\LeapMotion\README_BEFORE_UPDATING.txt" />
-    <None Include="Assets\LeapMotion\Resources\LeapCG.cginc" />
-    <None Include="Assets\LeapMotion\Resources\PassthroughBackground.shader" />
-    <None Include="Assets\LeapMotion\Resources\PassthroughForeground.shader" />
-    <None Include="Assets\LeapMotion\Resources\RuntimeGizmos.shader" />
-    <None Include="Assets\LeapMotion\Resources\ThresholdOverlay.shader" />
-    <None Include="Assets\LeapMotion\Version.txt" />
-    <None Include="Assets\LeapMotion\readme.txt" />
+    <None Include="Assets\Photon Unity Networking\Demos\DemoBoxes\Resources\eurof_tt.txt" />
+    <None Include="Assets\Photon Unity Networking\Demos\DemoPickup\Assets\3dFont\3dText.shader" />
+    <None Include="Assets\Photon Unity Networking\Demos\DemoRockPaperScissors\Assets\OpenSans\Apache License.txt" />
+    <None Include="Assets\Photon Unity Networking\Demos\MarcoPolo-Tutorial\marcopolo-readme.txt" />
+    <None Include="Assets\Photon Unity Networking\changelog.txt" />
+    <None Include="Assets\Photon Unity Networking\link.xml" />
+    <None Include="Assets\Photon Unity Networking\readme.txt" />
+    <None Include="Assets\Plugins\Photon3Unity3D.xml" />
     <None Include="Assets\Plugins\donotdelete.txt" />
+    <None Include="Assets\Plugins\release_history.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\SyntaxTree\UnityVS\2015\UnityVS.CSharp.targets" />
 </Project>
