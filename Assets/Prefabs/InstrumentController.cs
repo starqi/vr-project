@@ -93,7 +93,7 @@ public abstract class InstrumentController : MonoBehaviour
                 objLookup[keyCode] = cube;
 
                 // Add a controller
-                cube.AddComponent<KeyController>();
+                var keyCtr = cube.AddComponent<KeyController>();
 
                 if (note != null)
                 {
@@ -104,12 +104,10 @@ public abstract class InstrumentController : MonoBehaviour
                         arr = dupeLookup[note.semitone] = new List<GameObject>();
                     }
                     arr.Add(cube);
-                    var keyCtr = cube.GetComponent<KeyController>();
                     keyCtr.dupes = arr;
 
                     // Add an audio source, copying the note properties
-                    cube.AddComponent<AudioSource>();
-                    var keySrc = cube.GetComponent<AudioSource>();
+                    var keySrc = cube.AddComponent<AudioSource>();
                     keySrc.pitch = Mathf.Pow(2.0f, note.semitone / 12.0f);
                     keySrc.playOnAwake = false; // This is by default true
                     keySrc.clip = note.clip;
