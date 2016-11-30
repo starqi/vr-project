@@ -4,6 +4,7 @@ using UnityEngine.Audio;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System;
 
 // Information about a single note
 public class Note
@@ -19,7 +20,7 @@ public class Note
 public class KeyController : MonoBehaviour
 {
     public List<GameObject> dupes; // List of keys with same semitone as this one
-
+    public Note note; // The original note
     AudioSource source; // Each key has its own audio source created by InstrumentController, null means it is an unuseable key
 
     void Start()
@@ -29,7 +30,7 @@ public class KeyController : MonoBehaviour
 
     public void Play()
     {
-        if (source == null) return;
+        Debug.Assert(note != null);
         // Play sound and animate every duplicate key
         source.Play();
         dupes.ForEach(a => a.transform.Translate(0.0f, -InstrumentController.downShift, 0.0f, Space.Self));
@@ -37,7 +38,7 @@ public class KeyController : MonoBehaviour
 
     public void Release()
     {
-        if (source == null) return;
+        Debug.Assert(note != null);
         // Animate every duplicate key
         dupes.ForEach(a => a.transform.Translate(0.0f, InstrumentController.downShift, 0.0f, Space.Self));
     }
@@ -51,9 +52,13 @@ public abstract class InstrumentController : MonoBehaviour
     public static byte[] ascii = Encoding.ASCII.GetBytes(order);
     public static float keyWidth = 0.25f, rowShift = 0.09f, downShift = 0.05f, fillWidth = keyWidth + 0.01f, inactiveDrop = downShift;
     public static Color noNoteColor = new Color(0.05f, 0.01f, 0.01f);
+    public static byte numLastNotes = 5;
 
     // The instrument specific implementation
     public abstract Note GetNote(char c);
+
+    public List<Note> recentNotes { get; private set; }
+    public Action<Note> noteDown; // Subscribe to get notifications
 
     Dictionary<KeyCode, Note> noteLookup = new Dictionary<KeyCode, Note>();
     Dictionary<KeyCode, GameObject> objLookup = new Dictionary<KeyCode, GameObject>();
@@ -61,6 +66,7 @@ public abstract class InstrumentController : MonoBehaviour
 
     void Start()
     {
+        recentNotes = new List<Note>();
         Debug.Assert(keyRows * keyColumns == order.Length);
 
         // Use the custom instrument implementation to get which sounds to play on each key
@@ -105,6 +111,7 @@ public abstract class InstrumentController : MonoBehaviour
                     }
                     arr.Add(cube);
                     keyCtr.dupes = arr;
+                    keyCtr.note = note;
 
                     // Add an audio source, copying the note properties
                     var keySrc = cube.AddComponent<AudioSource>();
@@ -124,24 +131,41 @@ public abstract class InstrumentController : MonoBehaviour
     void Update()
     {
         GameObject cube;
-
+ 
+        // For each key
         for (int i = 0; i < ascii.Length; ++i)
         {
-            KeyCode kc = (KeyCode)ascii[i];
-            if (Input.GetKeyDown(kc))
+            KeyCode keyCode = (KeyCode)ascii[i];
+            // If it is pressed
+            if (Input.GetKeyDown(keyCode))
             {
-                if (objLookup.TryGetValue(kc, out cube))
+                // Find the key object
+                if (objLookup.TryGetValue(keyCode, out cube))
                 {
                     var ctl = cube.GetComponent<KeyController>();
-                    ctl.Play();
+                    // If it is a playable key
+                    if (ctl.note != null)
+                    {
+                        // Play it and keep the last 5 played notes
+                        ctl.Play();
+                        if (recentNotes.Count >= 5) recentNotes.RemoveAt(0);                        
+                        recentNotes.Add(ctl.note);
+                        noteDown(ctl.note);
+                    }
                 }
             }
-            else if (Input.GetKeyUp(kc))
+            // If it is released
+            else if (Input.GetKeyUp(keyCode))
             {
-                if (objLookup.TryGetValue(kc, out cube))
+                // Find the key object
+                if (objLookup.TryGetValue(keyCode, out cube))
                 {
+                    // Release the note
                     var ctl = cube.GetComponent<KeyController>();
-                    ctl.Release();
+                    if (ctl.note != null)
+                    {
+                        ctl.Release();
+                    }
                 }
             }
         }
