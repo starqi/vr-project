@@ -2,11 +2,25 @@
 using System.Collections;
 using Photon;
 using UnityEngine.UI;
+using System;
 
-// Test - Sets up networking using Photon
 public class PhotonInitSetup : PunBehaviour
 {
-    public static string roomName = "herro114477";
+    public static readonly string roomName = "myRoom";
+    public static readonly byte maxPlayers = 3;
+    public static readonly Vector3[] playerPositions;
+    public static readonly float triLength = 4.0f;
+
+    static PhotonInitSetup()
+    {
+        playerPositions = new Vector3[] {
+            new Vector3(-triLength, 0.0f, -triLength),
+            new Vector3(triLength, 0.0f, -triLength),
+            new Vector3(triLength, 0.0f, triLength)
+        };
+    }
+
+    ///////////////////////////////////////////////////
 
     void Awake()
     {
@@ -22,19 +36,61 @@ public class PhotonInitSetup : PunBehaviour
 
     public override void OnConnectedToMaster()
     {
-        PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions() { IsVisible = false, MaxPlayers = 3 }, null);
+        PhotonNetwork.playerName = LoginBtnController.loadedName;
+        PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions() { IsVisible = false, MaxPlayers =  maxPlayers }, null);
     }
 
     public override void OnCreatedRoom()
     {
         Debug.Log("Made a room");
+        OnCreatedOrJoinedRoom();
     }
 
     public override void OnJoinedRoom()
     {
         Debug.Log("Joined a room");
+        OnCreatedOrJoinedRoom();
     }
 
+    void CreateInstrument(Instrument instrument, Vector3 position)
+    {
+        if (instrument != Instrument.Drums)
+        {
+            var instrumentPf = Resources.Load<GameObject>("Prefabs/QwertyPiano");
+            var vizPf = Resources.Load<GameObject>("Prefabs/Viz");
+            var instrumentObj = (GameObject)Instantiate(instrumentPf, position, Quaternion.identity);
+            var vizObj = (GameObject)Instantiate(vizPf, position + new Vector3(0.0f, 5.0f, 0.0f), Quaternion.identity);
+            var instrumentCtl = instrumentObj.GetComponent<InstrumentController>();
+            var vizCtl = vizObj.GetComponent<VizController>();
+            vizCtl.instrument = instrumentObj;
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    int GetPlayerIndex()
+    {
+        for (var i = 0; i < PhotonNetwork.playerList.Length; ++i)
+            if (PhotonNetwork.playerList[i] == PhotonNetwork.player)
+                return i;
+        throw new Exception("Player not found in player list?");
+    }
+
+    void OnCreatedOrJoinedRoom()
+    {
+        CreateInstrument(LoginBtnController.loadedInstrument, playerPositions[GetPlayerIndex()]);
+    }
+
+    public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
+    {
+        Debug.Log("Player connected: " + newPlayer.name);
+        CreateInstrument(LoginBtnController.loadedInstrument, playerPositions[GetPlayerIndex()]);
+    }
+
+    /*
+     
     [PunRPC]
     public void TestRPC(byte param)
     {
@@ -50,4 +106,6 @@ public class PhotonInitSetup : PunBehaviour
             Debug.Log("RPC sent " + param);
         }
     }
+
+    */
 }

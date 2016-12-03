@@ -1,15 +1,25 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
+using System;
 
-public class NewBehaviourScript : MonoBehaviour {
+public class NetworkRedirector<T> {
 
-	// Use this for initialization
-	void Start () {
-	
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
+    public Action<T> playFunction;
+    PhotonInitSetup photonStuff;
+
+    public NetworkRedirector(PhotonInitSetup photonStuff)
+    {
+        this.photonStuff = photonStuff;
+    }
+
+    public void LocalGiveNote(T note)
+    {
+        playFunction(note);
+        photonStuff.
+    }
+
+    void PhotonStuffGiveNote(T note)
+    {
+
+    }
 }
