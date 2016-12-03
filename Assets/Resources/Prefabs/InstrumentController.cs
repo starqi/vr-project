@@ -45,7 +45,7 @@ public class KeyController : MonoBehaviour
 }
 
 // Template for different kinds of instruments
-public abstract class InstrumentController : MonoBehaviour
+public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCode>
 {
     public static int keyRows = 4, keyColumns = 10;
     public static string order = "1234567890qwertyuiopasdfghjkl;zxcvbnm,./";
@@ -64,8 +64,20 @@ public abstract class InstrumentController : MonoBehaviour
     Dictionary<KeyCode, GameObject> objLookup = new Dictionary<KeyCode, GameObject>();
     Dictionary<int, List<GameObject>> dupeLookup = new Dictionary<int, List<GameObject>>();
 
+    // Network
+    NetworkRedirector<KeyCode> networkRd = null;
+
+    public void SetupNetwork(int? ownerID)
+    {
+        var realID = ownerID == null ? PhotonNetwork.player.ID : ownerID.Value;
+        if (networkRd != null) networkRd.Destroy();
+        networkRd = new NetworkRedirector<KeyCode>(this, realID);
+    }
+
     void Start()
     {
+        SetupNetwork(null); // By default, a local instrument
+
         recentNotes = new List<Note>();
         Debug.Assert(keyRows * keyColumns == order.Length);
 
@@ -128,46 +140,50 @@ public abstract class InstrumentController : MonoBehaviour
         }
     }
 
-    void Update()
+    public void NoteEvent(bool isDown, KeyCode keyCode)
     {
         GameObject cube;
- 
-        // For each key
+
+        if (isDown)
+        {   
+            if (objLookup.TryGetValue(keyCode, out cube)) // Find the key object
+            {
+                var ctl = cube.GetComponent<KeyController>();   
+                if (ctl.note != null) // If it is a playable key
+                {
+                    // Play it and keep the last few played notes
+                    ctl.Play();
+                    if (recentNotes.Count >= numLastNotes) recentNotes.RemoveAt(0);
+                    recentNotes.Add(ctl.note);
+                    noteDown(ctl.note);
+                }
+            }
+        }
+        else
+        {   
+            if (objLookup.TryGetValue(keyCode, out cube)) // Find the key object
+            {
+                // Release the note
+                var ctl = cube.GetComponent<KeyController>();
+                if (ctl.note != null)
+                {
+                    ctl.Release();
+                }
+            }
+        }
+    }
+
+    void Update()
+    {
+        if (!networkRd.isLocal) return;
+
         for (int i = 0; i < ascii.Length; ++i)
         {
             KeyCode keyCode = (KeyCode)ascii[i];
-            // If it is pressed
             if (Input.GetKeyDown(keyCode))
-            {
-                // Find the key object
-                if (objLookup.TryGetValue(keyCode, out cube))
-                {
-                    var ctl = cube.GetComponent<KeyController>();
-                    // If it is a playable key
-                    if (ctl.note != null)
-                    {
-                        // Play it and keep the last 5 played notes
-                        ctl.Play();
-                        if (recentNotes.Count >= 5) recentNotes.RemoveAt(0);                        
-                        recentNotes.Add(ctl.note);
-                        noteDown(ctl.note);
-                    }
-                }
-            }
-            // If it is released
+                networkRd.Play(true, keyCode);
             else if (Input.GetKeyUp(keyCode))
-            {
-                // Find the key object
-                if (objLookup.TryGetValue(keyCode, out cube))
-                {
-                    // Release the note
-                    var ctl = cube.GetComponent<KeyController>();
-                    if (ctl.note != null)
-                    {
-                        ctl.Release();
-                    }
-                }
-            }
+                networkRd.Play(false, keyCode);
         }
     }
 }

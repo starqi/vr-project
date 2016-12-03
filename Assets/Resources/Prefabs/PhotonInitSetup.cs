@@ -1,8 +1,11 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using Photon;
 using UnityEngine.UI;
-using System;
+
+using Random = UnityEngine.Random;
+using System.Collections.Generic;
 
 public class PhotonInitSetup : PunBehaviour
 {
@@ -13,6 +16,7 @@ public class PhotonInitSetup : PunBehaviour
 
     static PhotonInitSetup()
     {
+        // Max 3 players, and sit in a triangle
         playerPositions = new Vector3[] {
             new Vector3(-triLength, 0.0f, -triLength),
             new Vector3(triLength, 0.0f, -triLength),
@@ -21,6 +25,7 @@ public class PhotonInitSetup : PunBehaviour
     }
 
     ///////////////////////////////////////////////////
+    // Photon connection ritual
 
     void Awake()
     {
@@ -52,7 +57,17 @@ public class PhotonInitSetup : PunBehaviour
         OnCreatedOrJoinedRoom();
     }
 
-    void CreateInstrument(Instrument instrument, Vector3 position)
+    public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
+    {
+        Debug.Log("Player connected: " + newPlayer.name);
+    }
+
+    ///////////////////////////////////////////////////
+
+    // Look up instrument game object from Photon's ID field
+    Dictionary<int, GameObject> instrumentObjLookup = new Dictionary<int, GameObject>();
+
+    GameObject CreateInstrument(Instrument instrument, Vector3 position, int ownerID)
     {
         if (instrument != Instrument.Drums)
         {
@@ -63,6 +78,8 @@ public class PhotonInitSetup : PunBehaviour
             var instrumentCtl = instrumentObj.GetComponent<InstrumentController>();
             var vizCtl = vizObj.GetComponent<VizController>();
             vizCtl.instrument = instrumentObj;
+            instrumentCtl.SetupNetwork(ownerID);
+            return instrumentObj;
         }
         else
         {
@@ -70,42 +87,30 @@ public class PhotonInitSetup : PunBehaviour
         }
     }
 
-    int GetPlayerIndex()
+    // Get index of player inside the player list, only use this to determine which position the player is
+    int GetPlayerIndex(PhotonPlayer player)
     {
         for (var i = 0; i < PhotonNetwork.playerList.Length; ++i)
-            if (PhotonNetwork.playerList[i] == PhotonNetwork.player)
+            if (PhotonNetwork.playerList[i] == player)
                 return i;
         throw new Exception("Player not found in player list?");
     }
 
     void OnCreatedOrJoinedRoom()
     {
-        CreateInstrument(LoginBtnController.loadedInstrument, playerPositions[GetPlayerIndex()]);
+        // Make the local instrument
+        var instObj = CreateInstrument(LoginBtnController.loadedInstrument, 
+            playerPositions[GetPlayerIndex(PhotonNetwork.player)], PhotonNetwork.player.ID);
+        instrumentObjLookup[PhotonNetwork.player.ID] = instObj;
+        // Tell everyone my instrument type
+        photonView.RPC("ProvideInstrument", PhotonTargets.AllBuffered, LoginBtnController.loadedInstrument);
     }
 
-    public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
-    {
-        Debug.Log("Player connected: " + newPlayer.name);
-        CreateInstrument(LoginBtnController.loadedInstrument, playerPositions[GetPlayerIndex()]);
-    }
-
-    /*
-     
     [PunRPC]
-    public void TestRPC(byte param)
-    {
-        Debug.Log("RPC received " + param);
+    public void ProvideInstrument(int id, Instrument instrument, PhotonMessageInfo info)
+    {    
+        // Someone else tells me their instrument type, make an instrument there
+        var instObj = CreateInstrument(instrument, playerPositions[GetPlayerIndex(info.sender)], info.sender.ID);
+        instrumentObjLookup[info.sender.ID] = instObj;
     }
-
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.F1) && PhotonNetwork.room != null)
-        {
-            byte param = (byte)Random.Range(0.0f, 255.0f);
-            photonView.RPC("TestRPC", PhotonTargets.All, param);
-            Debug.Log("RPC sent " + param);
-        }
-    }
-
-    */
 }
