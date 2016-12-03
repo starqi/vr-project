@@ -13,13 +13,11 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile>
-    </CompilerResponseFile>
+    <CompilerResponseFile></CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows:5</UnityBuildTarget>
     <UnityVersion>5.4.2f2</UnityVersion>
-    <RootNamespace>
-    </RootNamespace>
+    <RootNamespace></RootNamespace>
     <LangVersion Condition=" '$(VisualStudioVersion)' != '10.0' ">4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -223,11 +221,13 @@
     <Compile Include="Assets\PhotonChatApi\ChatState.cs" />
     <Compile Include="Assets\PhotonChatApi\ChatUserStatus.cs" />
     <Compile Include="Assets\PhotonChatApi\IChatClientListener.cs" />
-    <Compile Include="Assets\Prefabs\DesktopCameraController.cs" />
-    <Compile Include="Assets\Prefabs\InstrumentController.cs" />
-    <Compile Include="Assets\Prefabs\PhotonInitSetup.cs" />
-    <Compile Include="Assets\Prefabs\QwertyPianoController.cs" />
-    <Compile Include="Assets\Prefabs\VizController.cs" />
+    <Compile Include="Assets\Resources\LoginBtnController.cs" />
+    <Compile Include="Assets\Resources\Prefabs\DesktopCameraController.cs" />
+    <Compile Include="Assets\Resources\Prefabs\InstrumentController.cs" />
+    <Compile Include="Assets\Resources\Prefabs\NetworkRedirector.cs" />
+    <Compile Include="Assets\Resources\Prefabs\PhotonInitSetup.cs" />
+    <Compile Include="Assets\Resources\Prefabs\QwertyPianoController.cs" />
+    <Compile Include="Assets\Resources\Prefabs\VizController.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Photon Unity Networking\Demos\DemoBoxes\Resources\eurof_tt.txt" />
