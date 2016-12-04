@@ -37,7 +37,7 @@ public class PhotonInitSetup : PunBehaviour
     void Start()
     {
         PhotonNetwork.ConnectUsingSettings("5.4");
-        text.text = "Loading multiplayer";
+        text.text = "Connecting to Photon servers";
         positionIndexToID = new int?[maxPlayers];
     }
 
@@ -54,7 +54,7 @@ public class PhotonInitSetup : PunBehaviour
 
     public override void OnDisconnectedFromPhoton()
     {
-        text.text = "DISCONNECTED - PLEASE RESTART";
+        text.text = "Disconnected - Please restart";
     }
 
     ///////////////////////////////////////////////////
@@ -65,6 +65,7 @@ public class PhotonInitSetup : PunBehaviour
     // Look up instrument game object from Photon's ID field
     Dictionary<int, GameObject> instrumentObjLookup = new Dictionary<int, GameObject>();
     int?[] positionIndexToID; // Given the index (0 to maxPlayers - 1), look up the Photon ID for that player
+    int? localIndex = null;
 
     // Creates the instrument and the visualization object
     GameObject CreateInstrument(Instrument instrument, Vector3 position, int ownerID)
@@ -92,7 +93,7 @@ public class PhotonInitSetup : PunBehaviour
         }
     }
 
-    // When a new player joins, give them a number from 0 to maxPlayers - 1
+    // When the local player joins, give a number from 0 to maxPlayers - 1
     // This is stored in the array/hash-table "positionIndexToID"
     int AssignPlayerIndex(int id)
     {
@@ -119,7 +120,9 @@ public class PhotonInitSetup : PunBehaviour
     // Free an index 
     void RemovePlayerIndex(int id)
     {
-        positionIndexToID[GetPlayerIndex(id)] = null;
+        var index = GetPlayerIndex(id);
+        if (index != -1)
+            positionIndexToID[index] = null;
     }
 
     ///////////////////////////////////////////////////
@@ -149,6 +152,8 @@ public class PhotonInitSetup : PunBehaviour
         GameObject.Destroy(instrumentObjLookup[otherPlayer.ID]);
         // Remove ID entry
         instrumentObjLookup.Remove(otherPlayer.ID);
+        // Remove player index
+        RemovePlayerIndex(otherPlayer.ID);
     }
 
     // Put camera on top of the instrument
@@ -170,42 +175,26 @@ public class PhotonInitSetup : PunBehaviour
     {
         if (instrumentObjLookup.ContainsKey(PhotonNetwork.player.ID)) return; // In case this gets called multiple times
         // Assign an index
-        int index = AssignPlayerIndex(PhotonNetwork.player.ID);
-        if (index == -1)
-        {
-            text.text = "Unexpected server is full error";
-            throw new Exception(text.text);
-        }
+        localIndex = AssignPlayerIndex(PhotonNetwork.player.ID);
+        Debug.Assert(localIndex != -1); // No space, but somehow we could connect?
         // Make the local instrument
-        var instObj = CreateInstrument(LoginBtnController.loadedInstrument, playerPositions[index], PhotonNetwork.player.ID);
+        var instObj = CreateInstrument(LoginBtnController.loadedInstrument, playerPositions[localIndex.Value], PhotonNetwork.player.ID);
         instrumentObjLookup[PhotonNetwork.player.ID] = instObj;
         // Put camera on top of the instrument
         SetupLocalCamera(instObj.transform.FindChild("QwertyPiano(Clone)").gameObject, LoginBtnController.loadedInstrument);
-        // Tell everyone my instrument type, and all future people who join (AllBuffered)
-        photonView.RPC("MakeNetInstrument", PhotonTargets.AllBuffered, LoginBtnController.loadedInstrument);
+        // Tell everyone my instrument type and my index, and all future people who join (AllBuffered)
+        photonView.RPC("MakeNetInstrument", PhotonTargets.AllBuffered, LoginBtnController.loadedInstrument, localIndex.Value);
         image.enabled = false; // Show the scene
         text.text = "";
     }
 
     [PunRPC]
-    // Someone else tells me their instrument type, make an instrument at their location
-    public void MakeNetInstrument(Instrument instrument, PhotonMessageInfo info)
+    // Someone else tells me their instrument type and index, make an instrument at their location
+    public void MakeNetInstrument(Instrument instrument, int index, PhotonMessageInfo info)
     {
-        if (PhotonNetwork.otherPlayers.Length >= maxPlayers)
-        {
-            text.text = "Server is full";
-            Debug.Log(text.text);
-            return;
-        }
-
+        Debug.Assert(PhotonNetwork.otherPlayers.Length < maxPlayers);
         if (instrumentObjLookup.ContainsKey(info.sender.ID)) return; // In case this gets called multiple times
-
-        int index = AssignPlayerIndex(info.sender.ID);
-        if (index == -1)
-        {
-            text.text = "Unexpected error - server gave too many instruments";
-            throw new Exception(text.text);
-        }
+        positionIndexToID[index] = info.sender.ID;
         var instObj = CreateInstrument(instrument, playerPositions[index], info.sender.ID);
         instrumentObjLookup[info.sender.ID] = instObj;
         // We've created all the other instruments
