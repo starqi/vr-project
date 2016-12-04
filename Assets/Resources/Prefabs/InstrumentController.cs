@@ -66,18 +66,16 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
 
     // Network
     NetworkRedirector<KeyCode> networkRd = null;
+    public bool isNetworkSetup() { return networkRd != null; }
 
-    public void SetupNetwork(int? ownerID)
+    public void SetupNetwork(int ownerID)
     {
-        var realID = ownerID == null ? PhotonNetwork.player.ID : ownerID.Value;
-        if (networkRd != null) networkRd.Destroy();
-        networkRd = new NetworkRedirector<KeyCode>(this, realID);
+        if (isNetworkSetup()) throw new Exception("Network already set up");
+        networkRd = new NetworkRedirector<KeyCode>(this, ownerID);
     }
 
     void Start()
     {
-        SetupNetwork(null); // By default, a local instrument
-
         recentNotes = new List<Note>();
         Debug.Assert(keyRows * keyColumns == order.Length);
 
@@ -140,13 +138,13 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
         }
     }
 
-    public void NoteEvent(bool isDown, KeyCode keyCode)
+    public void NoteEvent(bool isDown, KeyCode note)
     {
         GameObject cube;
 
         if (isDown)
         {   
-            if (objLookup.TryGetValue(keyCode, out cube)) // Find the key object
+            if (objLookup.TryGetValue(note, out cube)) // Find the key object
             {
                 var ctl = cube.GetComponent<KeyController>();   
                 if (ctl.note != null) // If it is a playable key
@@ -161,7 +159,7 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
         }
         else
         {   
-            if (objLookup.TryGetValue(keyCode, out cube)) // Find the key object
+            if (objLookup.TryGetValue(note, out cube)) // Find the key object
             {
                 // Release the note
                 var ctl = cube.GetComponent<KeyController>();
@@ -175,7 +173,8 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
 
     void Update()
     {
-        if (!networkRd.isLocal) return;
+        // Not set up or is a network instrument => Cannot play it with keys
+        if (networkRd == null || !networkRd.isLocal) return;
 
         for (int i = 0; i < ascii.Length; ++i)
         {

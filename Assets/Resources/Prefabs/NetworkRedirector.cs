@@ -5,7 +5,12 @@ using System;
 // Instrument controllers should implement this, where T is some way to identify notes
 public interface NetworkSupport<T>
 {
-    void NoteEvent(bool isDown, T keyCode);
+    // This will play a note
+    void NoteEvent(bool isDown, T note);
+    // This will assign a Photon user ID to the instrument, before this is assigned, the instrument
+    // should be unresponsive. It will respond to local events only if the user ID is the local user.
+    // Otherwise, it will respond only to network events.
+    void SetupNetwork(int ownerID);
 }
 
 // Instrument controllers should have this as a class object
@@ -26,14 +31,15 @@ public class NetworkRedirector<T>
     public NetworkRedirector(NetworkSupport<T> controller, int ownerID)
     {
         this.ownerID = ownerID;
-        if (ownerID == PhotonNetwork.player.ID)
+        // If not local, receive network notes
+        if (ownerID != PhotonNetwork.player.ID)
         {
             PhotonNetwork.OnEventCall += NetworkEventReceive;
-            isLocal = true;
+            isLocal = false;
         }
         else
         {
-            isLocal = false;
+            isLocal = true;
         }
         this.controller = controller;
     }
@@ -53,11 +59,6 @@ public class NetworkRedirector<T>
     {
         if (ownerID != PhotonNetwork.player.ID) return;
         controller.NoteEvent(isKeyDown, note); // Get the controller to play the note
-        PhotonNetwork.RaiseEvent((byte)(isKeyDown ? 1 : 0), note, false, null); // Then broadcast it elsewhere
-    }
-
-    public void Destroy()
-    {
-        if (ownerID == PhotonNetwork.player.ID) PhotonNetwork.OnEventCall -= NetworkEventReceive;
+        PhotonNetwork.RaiseEvent((byte)(isKeyDown ? 1 : 0), note, true, null); // Then broadcast it elsewhere
     }
 }
