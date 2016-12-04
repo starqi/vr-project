@@ -43,6 +43,7 @@ public class PhotonInitSetup : PunBehaviour
 
     public override void OnConnectedToMaster()
     {
+        text.text = "Connecting to a room";
         PhotonNetwork.playerName = LoginBtnController.loadedName;
         PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions() { IsVisible = false, MaxPlayers =  maxPlayers }, null);
     }
@@ -55,6 +56,26 @@ public class PhotonInitSetup : PunBehaviour
     public override void OnDisconnectedFromPhoton()
     {
         text.text = "Disconnected - Please restart";
+    }
+
+    public override void OnPhotonCreateRoomFailed(object[] codeAndMsg)
+    {
+        text.text = "Create room failed";
+    }
+
+    public override void OnPhotonJoinRoomFailed(object[] codeAndMsg)
+    {
+        text.text = "Join room failed";
+    }
+    
+    public override void OnFailedToConnectToPhoton(DisconnectCause cause)
+    {
+        text.text = "Connecting to Photon failed";
+    }
+
+    public override void OnCustomAuthenticationFailed(string debugMessage)
+    {
+        text.text = "Authentication failed";
     }
 
     ///////////////////////////////////////////////////
