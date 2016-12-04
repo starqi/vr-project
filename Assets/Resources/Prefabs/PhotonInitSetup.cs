@@ -11,8 +11,8 @@ public class PhotonInitSetup : PunBehaviour
 {
     public static readonly string roomName = "myRoom";
     public static readonly byte maxPlayers = 3;
-    public static readonly Vector3[] playerPositions;
-    public static readonly float triLength = 2.0f, floorHeight = 2.0f;
+    public static readonly Vector3[] playerPositions, spotPositions;
+    public static readonly float triLength = 2.0f, floorHeight = 2.0f, spotTriLength = 5.0f, spotHeight = 10.0f;
 
     static PhotonInitSetup()
     {
@@ -21,6 +21,12 @@ public class PhotonInitSetup : PunBehaviour
             new Vector3(-triLength, floorHeight, -triLength),
             new Vector3(triLength, floorHeight, -triLength),
             new Vector3(triLength, floorHeight, triLength)
+        };
+        // Positions of spot lights
+        spotPositions = new Vector3[] {
+            new Vector3(-spotTriLength, spotHeight, -spotTriLength),
+            new Vector3(spotTriLength, spotHeight, -spotTriLength),
+            new Vector3(spotTriLength, spotHeight, spotTriLength)
         };
     }
 
@@ -89,7 +95,7 @@ public class PhotonInitSetup : PunBehaviour
     int? localIndex = null;
 
     // Creates the instrument and the visualization object
-    GameObject CreateInstrument(Instrument instrument, Vector3 position, int ownerID)
+    GameObject CreateInstrument(Instrument instrument, int index, int ownerID)
     {
         if (instrument != Instrument.Drums)
         {
@@ -99,8 +105,8 @@ public class PhotonInitSetup : PunBehaviour
             var vizPf = Resources.Load<GameObject>("Prefabs/Viz");
             var instrumentObj = (GameObject)Instantiate(instrumentPf, container.transform, false);
             var vizObj = (GameObject)Instantiate(vizPf, container.transform, false);
-            instrumentObj.transform.position = position;
-            vizObj.transform.position = position + new Vector3(0.0f, 5.0f, 0.0f);
+            instrumentObj.transform.position = playerPositions[index];
+            vizObj.transform.position = spotPositions[index];
             var instrumentCtl = instrumentObj.GetComponent<InstrumentController>();
             var vizCtl = vizObj.GetComponent<VizController>();
             vizCtl.instrument = instrumentObj;
@@ -199,7 +205,7 @@ public class PhotonInitSetup : PunBehaviour
         localIndex = AssignPlayerIndex(PhotonNetwork.player.ID);
         Debug.Assert(localIndex != -1); // No space, but somehow we could connect?
         // Make the local instrument
-        var instObj = CreateInstrument(LoginBtnController.loadedInstrument, playerPositions[localIndex.Value], PhotonNetwork.player.ID);
+        var instObj = CreateInstrument(LoginBtnController.loadedInstrument, localIndex.Value, PhotonNetwork.player.ID);
         instrumentObjLookup[PhotonNetwork.player.ID] = instObj;
         // Put camera on top of the instrument
         SetupLocalCamera(instObj.transform.FindChild("QwertyPiano(Clone)").gameObject, LoginBtnController.loadedInstrument);
@@ -216,7 +222,7 @@ public class PhotonInitSetup : PunBehaviour
         Debug.Assert(PhotonNetwork.otherPlayers.Length < maxPlayers);
         if (instrumentObjLookup.ContainsKey(info.sender.ID)) return; // In case this gets called multiple times
         positionIndexToID[index] = info.sender.ID;
-        var instObj = CreateInstrument(instrument, playerPositions[index], info.sender.ID);
+        var instObj = CreateInstrument(instrument, index, info.sender.ID);
         instrumentObjLookup[info.sender.ID] = instObj;
         // We've created all the other instruments
         if (instrumentObjLookup.Count == PhotonNetwork.otherPlayers.Length)

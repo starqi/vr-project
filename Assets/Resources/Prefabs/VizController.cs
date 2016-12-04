@@ -19,7 +19,9 @@ public class VizController : MonoBehaviour {
         Color.Lerp(Color.red, Color.blue, 0.68f), Color.red // Fourth, tritone
     };
 
-    public static float maxIntensity = 1.8f, fadeTime = 2.0f, particleMaxSpeed = 15.0f, intervalDecay = 0.85f;
+    public static float maxIntensity = 15.0f, fadeTime = 2.0f, particleMaxSpeed = 15.0f, intervalDecay = 0.85f,
+        maxFogDensity = 0.09f, lessFogPerSemi = 0.009f;
+    public static int baseSemitone = -12;
 
     public static Color SemiToColor(int semitones)
     {
@@ -57,8 +59,10 @@ public class VizController : MonoBehaviour {
         light.transform.localPosition = Vector3.zero;
         light.transform.localRotation = Quaternion.AngleAxis(90.0f, Vector3.right);
         lightComp = light.AddComponent<Light>();
-        lightComp.type = LightType.Directional;
+        lightComp.type = LightType.Spot;
+        lightComp.spotAngle = 90.0f;
         lightComp.intensity = 0.0f;
+        lightComp.range = 20.0f;
         
         particles = new GameObject();
         particles.transform.parent = transform;
@@ -94,6 +98,8 @@ public class VizController : MonoBehaviour {
         
         // Make the light fade away if notes stop being played
         lightComp.intensity = maxIntensity * (Mathf.Max(0.0f, fadeTime - Time.time + timeLastKeyPress) / fadeTime);
+        if (RenderSettings.fogDensity < maxFogDensity) RenderSettings.fogDensity += maxFogDensity * Time.deltaTime;
+        if (RenderSettings.fogDensity >= maxFogDensity) RenderSettings.fogDensity = maxFogDensity;
         // No particles if completely faded
         emission.enabled = lightComp.intensity != 0.0f;
         particleSys.startSpeed = particleMaxSpeed * lightComp.intensity / maxIntensity;
@@ -161,6 +167,7 @@ public class VizController : MonoBehaviour {
         }
         sum /= intervalOrder.Count;
         lightComp.color = new Color(sum.x, sum.y, sum.z);
+        RenderSettings.fogDensity = Mathf.Max(0.0f, maxFogDensity - lessFogPerSemi * (note.semitone - baseSemitone));
 
         //////////////////////////////////////////////////////////////
         // Set the particle color to the latest interval color
