@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System;
 
 // Instrument controllers should implement this, where T is some way to identify notes
-public interface NetworkSupport<T>
+public interface NetworkSupport<T,P>
 {
+    void SetParameters(P parameters);
     // This will play a note
     void NoteEvent(bool isDown, T note);
     // This will assign a Photon user ID to the instrument, before this is assigned, the instrument
@@ -14,21 +15,21 @@ public interface NetworkSupport<T>
 }
 
 // Instrument controllers should have this as a class object
-public class NetworkRedirector<T>
+public class NetworkRedirector<T, P>
 {
-    NetworkSupport<T> controller; // A reference to the parent controller
+    NetworkSupport<T,P> controller; // A reference to the parent controller
     int ownerID; // The networked Photon player ID which owns this instrument
 
     public bool isLocal { get; private set; }
 
     // This makes a local instrument
-    public NetworkRedirector(NetworkSupport<T> controller) 
+    public NetworkRedirector(NetworkSupport<T,P> controller) 
         : this(controller, PhotonNetwork.player.ID)
     {
     } 
 
     // If ownerID is the local player's ID, then this will be a local instrument, otherwise it is a network instrument
-    public NetworkRedirector(NetworkSupport<T> controller, int ownerID)
+    public NetworkRedirector(NetworkSupport<T,P> controller, int ownerID)
     {
         this.ownerID = ownerID;
         // If not local, receive network notes
@@ -49,9 +50,16 @@ public class NetworkRedirector<T>
     {
         // See if the message is intended for this instrument
         if (senderID != ownerID) return;
-        // If so, get the note ID and tell the controller to play that note
-        T noteID = (T)content;
-        controller.NoteEvent(eventCode == 1, noteID);
+        if (eventCode == 2) // If is a change of instrument params
+        {
+            controller.SetParameters((P)content);
+        }
+        else // Otherwise, playing a note
+        {
+            // Get the note ID and tell the controller to play that note
+            T noteID = (T)content;
+            controller.NoteEvent(eventCode == 1, noteID);
+        }
     }
 
     // This should only be called if it is a local instrument
@@ -60,5 +68,13 @@ public class NetworkRedirector<T>
         if (ownerID != PhotonNetwork.player.ID) return;
         controller.NoteEvent(isKeyDown, note); // Get the controller to play the note
         PhotonNetwork.RaiseEvent((byte)(isKeyDown ? 1 : 0), note, true, null); // Then broadcast it elsewhere
+    }
+
+    // This should only be called if it is a local instrument
+    public void SetParameters(P parameters)
+    {
+        if (ownerID != PhotonNetwork.player.ID) return;
+        controller.SetParameters(parameters);
+        PhotonNetwork.RaiseEvent(2, parameters, true, null);
     }
 }

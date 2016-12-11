@@ -1,16 +1,13 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Audio;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Linq;
-using System;
+using UnityEngine;
+using UnityEngine.Audio;
 
 // Information about a single note
 public class Note
 {
     public AudioClip clip { get; set; }
-    public AudioMixerGroup mixerGroup { get; set; }
     public int semitone { get; set; }
     public Color color { get; set; }
     public Material material { get; set; }
@@ -21,7 +18,9 @@ public class KeyController : MonoBehaviour
 {
     public List<GameObject> dupes; // List of keys with same semitone as this one
     public Note note; // The original note
-    AudioSource source; // Each key has its own audio source created by InstrumentController, null means it is an unuseable key
+    public AudioSource source; // Each key has its own audio source created by InstrumentController, null means it is an unuseable key
+    public int octave;
+    public Vector3 upPos, downPos;
 
     void Start()
     {
@@ -33,48 +32,48 @@ public class KeyController : MonoBehaviour
         Debug.Assert(note != null);
         // Play sound and animate every duplicate key
         source.Play();
-        dupes.ForEach(a => a.transform.Translate(0.0f, -InstrumentController.downShift, 0.0f, Space.Self));
+        dupes.ForEach(a => a.transform.position = a.GetComponent<KeyController>().downPos);
     }
 
     public void Release()
     {
         Debug.Assert(note != null);
-        // Animate every duplicate key
-        dupes.ForEach(a => a.transform.Translate(0.0f, InstrumentController.downShift, 0.0f, Space.Self));
+        dupes.ForEach(a => a.transform.position = a.GetComponent<KeyController>().upPos);
     }
 }
 
-// Template for different kinds of instruments
-public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCode>
+// Template for different kinds of qwerty instruments
+public abstract class InstrumentController<P> : MonoBehaviour, NetworkSupport<KeyCode, P>
 {
     public static int keyRows = 4, keyColumns = 10;
     public static string order = "1234567890qwertyuiopasdfghjkl;zxcvbnm,./";
     public static byte[] ascii = Encoding.ASCII.GetBytes(order);
-    public static float keyWidth = 0.25f, rowShift = 0.09f, downShift = 0.05f, fillWidth = keyWidth + 0.01f, inactiveDrop = downShift;
+    public static float keyWidth = 0.25f, rowShift = 0.115f, downShift = 0.05f, fillWidth = keyWidth + 0.01f, inactiveDrop = downShift;
     public static Color noNoteColor = new Color(0.05f, 0.01f, 0.01f);
     public static byte numLastNotes = 5;
 
     // The instrument specific implementation
     public abstract Note GetNote(char c);
+    public abstract void SetParameters(P parameters);
 
     public List<Note> recentNotes { get; private set; }
-    public Action<Note> noteDown; // Subscribe to get notifications
+    public Action<Note, GameObject> noteDown; // Subscribe to get notifications
 
-    Dictionary<KeyCode, Note> noteLookup = new Dictionary<KeyCode, Note>();
-    Dictionary<KeyCode, GameObject> objLookup = new Dictionary<KeyCode, GameObject>();
-    Dictionary<int, List<GameObject>> dupeLookup = new Dictionary<int, List<GameObject>>();
+    protected Dictionary<KeyCode, Note> noteLookup = new Dictionary<KeyCode, Note>();
+    protected Dictionary<KeyCode, GameObject> objLookup = new Dictionary<KeyCode, GameObject>();
+    protected Dictionary<int, List<GameObject>> dupeLookup = new Dictionary<int, List<GameObject>>();
 
     // Network
-    NetworkRedirector<KeyCode> networkRd = null;
+    protected NetworkRedirector<KeyCode, P> networkRd = null;
     public bool isNetworkSetup() { return networkRd != null; }
 
     public void SetupNetwork(int ownerID)
     {
         if (isNetworkSetup()) throw new Exception("Network already set up");
-        networkRd = new NetworkRedirector<KeyCode>(this, ownerID);
+        networkRd = new NetworkRedirector<KeyCode, P>(this, ownerID);
     }
 
-    void Start()
+    protected virtual void Start()
     {
         recentNotes = new List<Note>();
         Debug.Assert(keyRows * keyColumns == order.Length);
@@ -122,13 +121,14 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
                     arr.Add(cube);
                     keyCtr.dupes = arr;
                     keyCtr.note = note;
+                    keyCtr.upPos = cube.transform.position;
+                    keyCtr.downPos = keyCtr.upPos + Vector3.down * downShift;
 
                     // Add an audio source, copying the note properties
                     var keySrc = cube.AddComponent<AudioSource>();
                     keySrc.pitch = Mathf.Pow(2.0f, note.semitone / 12.0f);
                     keySrc.playOnAwake = false; // This is by default true
                     keySrc.clip = note.clip;
-                    keySrc.outputAudioMixerGroup = note.mixerGroup;
                     keySrc.spatialize = true;
                     keySrc.spatialBlend = 1.0f;
                 }
@@ -138,7 +138,7 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
         }
     }
 
-    public void NoteEvent(bool isDown, KeyCode note)
+    public virtual void NoteEvent(bool isDown, KeyCode note)
     {
         GameObject cube;
 
@@ -153,7 +153,7 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
                     ctl.Play();
                     if (recentNotes.Count >= numLastNotes) recentNotes.RemoveAt(0);
                     recentNotes.Add(ctl.note);
-                    noteDown(ctl.note);
+                    noteDown(ctl.note, cube);
                 }
             }
         }
@@ -171,7 +171,7 @@ public abstract class InstrumentController : MonoBehaviour, NetworkSupport<KeyCo
         }
     }
 
-    void Update()
+    protected virtual void Update()
     {
         // Not set up or is a network instrument => Cannot play it with keys
         if (networkRd == null || !networkRd.isLocal) return;

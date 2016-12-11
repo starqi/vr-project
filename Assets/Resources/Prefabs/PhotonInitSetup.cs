@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 using Photon;
 using UnityEngine.UI;
 
@@ -9,6 +10,8 @@ using Random = UnityEngine.Random; // Name conflict
 // Sets up Photon assuming LoginBtnController is set up
 public class PhotonInitSetup : PunBehaviour
 {
+    public static readonly string pianoWav = "Alesis-Fusion-Bright-Acoustic-Piano-C4";
+    public static readonly string guitarWav = "Kawai-K11-CleanGtr-C3";
     public static readonly string roomName = "myRoom";
     public static readonly byte maxPlayers = 3;
     public static readonly Vector3[] playerPositions, spotPositions;
@@ -47,11 +50,21 @@ public class PhotonInitSetup : PunBehaviour
         positionIndexToID = new int?[maxPlayers];
     }
 
+    IEnumerator DisplayPingCoroutine()
+    {
+        while (true)
+        {
+            pingText.text = PhotonNetwork.networkingPeer.RoundTripTime + " ms";
+            yield return new WaitForSeconds(2.5f);
+        }
+    }
+
     public override void OnConnectedToMaster()
     {
         text.text = "Connecting to a room";
         PhotonNetwork.playerName = LoginBtnController.loadedName;
         PhotonNetwork.JoinOrCreateRoom(roomName, new RoomOptions() { IsVisible = false, MaxPlayers =  maxPlayers }, null);
+        StartCoroutine(DisplayPingCoroutine());
     }
 
     public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
@@ -86,7 +99,7 @@ public class PhotonInitSetup : PunBehaviour
 
     ///////////////////////////////////////////////////
 
-    public Text text; // Displays some text to user
+    public Text text, pingText; // Displays some text to user
     public Image image; // Background image covering up the scene
 
     // Look up instrument game object from Photon's ID field
@@ -97,24 +110,60 @@ public class PhotonInitSetup : PunBehaviour
     // Creates the instrument and the visualization object
     GameObject CreateInstrument(Instrument instrument, int index, int ownerID)
     {
-        if (instrument != Instrument.Drums)
+        if (instrument != Instrument.Drums) // Qwerty instruments
         {
+            // Put everything under a parent object
             var container = new GameObject();
 
+            // Create instrument and visualization from prefabs
             var instrumentPf = Resources.Load<GameObject>("Prefabs/QwertyPiano");
             var vizPf = Resources.Load<GameObject>("Prefabs/Viz");
             var instrumentObj = (GameObject)Instantiate(instrumentPf, container.transform, false);
             var vizObj = (GameObject)Instantiate(vizPf, container.transform, false);
             instrumentObj.transform.position = playerPositions[index];
             vizObj.transform.position = spotPositions[index];
-            var instrumentCtl = instrumentObj.GetComponent<InstrumentController>();
+
+            // Create floating name tag
+            var nameCanvas = new GameObject();
+            nameCanvas.AddComponent<Canvas>();
+            nameCanvas.transform.parent = container.transform;
+            nameCanvas.transform.position = playerPositions[index] + new Vector3(1.8f, 0.2f, 0.0f);
+            nameCanvas.transform.localScale = new Vector3(0.05f, 0.025f, 0.05f);
+            var nameText = new GameObject();
+            nameText.transform.parent = nameCanvas.transform;
+            nameText.transform.localPosition = Vector3.zero;
+            nameText.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            var nameTextText = nameText.AddComponent<Text>();
+            nameTextText.text = PhotonPlayer.Find(ownerID).name;
+            nameTextText.font = Resources.Load<Font>("Fonts/eurof35");
+            nameTextText.resizeTextForBestFit = true;
+            nameTextText.alignment = TextAnchor.UpperCenter;
+
+            // Pick the audio clip
+            var instrumentCtl = instrumentObj.GetComponent<QwertyPianoController>();
+            AudioClip clip;
+            if (instrument == Instrument.QwertyGuitar)
+            {
+                clip = Resources.Load<AudioClip>("Sound/" + guitarWav);
+                instrumentCtl.baseSemiShift = 0;
+            }
+            else
+            {
+                Debug.Assert(instrument == Instrument.QwertyPiano);
+                clip = Resources.Load<AudioClip>("Sound/" + pianoWav);
+            }
+            instrumentCtl.clip = clip;
+
+            // Make the visualization point to the instrument 
             var vizCtl = vizObj.GetComponent<VizController>();
             vizCtl.instrument = instrumentObj;
+
+            // Set up networking
             instrumentCtl.SetupNetwork(ownerID);
 
             return container;
         }
-        else
+        else // Vive drums
         {
             throw new NotImplementedException();
         }

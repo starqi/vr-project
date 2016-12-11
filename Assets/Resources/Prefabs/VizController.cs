@@ -20,7 +20,7 @@ public class VizController : MonoBehaviour {
     };
 
     public static float maxIntensity = 15.0f, fadeTime = 2.0f, particleMaxSpeed = 15.0f, intervalDecay = 0.85f,
-        maxFogDensity = 0.09f, lessFogPerSemi = 0.009f;
+        maxFogDensity = 0.09f, lessFogPerSemi = 0.0037f, fogDelayMultiplier = 0.8f;
     public static int baseSemitone = -12;
 
     public static Color SemiToColor(int semitones)
@@ -38,13 +38,13 @@ public class VizController : MonoBehaviour {
 
     // The instrument to visualize, set through Unity editor
     public GameObject instrument; // Warning: Assume this is only set once in the Unity editor!
-    InstrumentController instCtl; // Because this var doesn't auto update from the above
+    QwertyPianoController instCtl; // Because this var doesn't auto update from the above
 
     // Visualization objects and components
     new GameObject light;
     GameObject particles;
     Light lightComp;
-    ParticleSystem particleSys;
+    ParticleSystem particleSys, subSys;
 
     // Current intervals being played, this is basically an ordered hash table
     int[] intervals = new int[12]; // Indices to intervalOrder
@@ -71,22 +71,47 @@ public class VizController : MonoBehaviour {
         particleSys = particles.AddComponent<ParticleSystem>();
         particleSys.startSpeed = particleMaxSpeed;
         particleSys.gravityModifier = 0.2f;
-        particleSys.startSize = 0.1f;   
+        particleSys.startSize = 0.2f;
+        particleSys.startLifetime = 2.0f;
+
         var emission = particleSys.emission;
         emission.enabled = false;
-        emission.rate = 70;
+        emission.rate = 50;
+
         var shape = particleSys.shape;
         shape.shapeType = ParticleSystemShapeType.Hemisphere;
         shape.radius = 2.2f;
 
+        // Particles look like sparks
+        var renderer = particleSys.GetComponent<Renderer>();
+        renderer.material = Resources.Load<Material>("ParticleSystems/Materials/ParticleFirework");
+
+        // Steal the fireball object from explosion prefab
+        var subEmitPrefab = Resources.Load<GameObject>("ParticleSystems/Prefabs/Explosion");
+        var subEmitObj = (GameObject)Instantiate(subEmitPrefab.transform.Find("Fireball").gameObject, particles.transform, false);
+        subSys = subEmitObj.GetComponent<ParticleSystem>();
+
+        var subEmission = subSys.emission;
+        subEmission.enabled = false;
+
+        // Make fireball look like an exploding spark instead of a sphere
+        var subRenderer = subSys.GetComponent<Renderer>();
+        subRenderer.material = Resources.Load<Material>("ParticleSystems/Materials/ParticleFirework");
+
+        // Fireball is a on death subemitter
+        var subemitters = particleSys.subEmitters;
+        subemitters.enabled = true;
+        subemitters.death0 = subSys;
+
         // Subscribe when notes are played
-        instCtl = instrument.GetComponent<InstrumentController>();
+        instCtl = instrument.GetComponent<QwertyPianoController>();
         instCtl.noteDown += NoteDown;
     }
 
     void Update()
     {
         var emission = particleSys.emission;
+        var subEmission = subSys.emission;
 
         if (timeLastKeyPress == 0.0f)
         {
@@ -98,10 +123,11 @@ public class VizController : MonoBehaviour {
         
         // Make the light fade away if notes stop being played
         lightComp.intensity = maxIntensity * (Mathf.Max(0.0f, fadeTime - Time.time + timeLastKeyPress) / fadeTime);
-        if (RenderSettings.fogDensity < maxFogDensity) RenderSettings.fogDensity += maxFogDensity * Time.deltaTime;
+        if (RenderSettings.fogDensity < maxFogDensity) RenderSettings.fogDensity += maxFogDensity * Time.deltaTime * fogDelayMultiplier;
         if (RenderSettings.fogDensity >= maxFogDensity) RenderSettings.fogDensity = maxFogDensity;
         // No particles if completely faded
         emission.enabled = lightComp.intensity != 0.0f;
+        subEmission.enabled = emission.enabled;
         particleSys.startSpeed = particleMaxSpeed * lightComp.intensity / maxIntensity;
     }
 
@@ -114,7 +140,7 @@ public class VizController : MonoBehaviour {
     }
 
     // When a note is being played, update the colors
-    void NoteDown(Note note)
+    void NoteDown(Note note, GameObject obj)
     {
         timeLastKeyPress = Time.time;
         var recent = instCtl.recentNotes;
@@ -167,7 +193,9 @@ public class VizController : MonoBehaviour {
         }
         sum /= intervalOrder.Count;
         lightComp.color = new Color(sum.x, sum.y, sum.z);
-        RenderSettings.fogDensity = Mathf.Max(0.0f, maxFogDensity - lessFogPerSemi * (note.semitone - baseSemitone));
+        int realSemitone = note.semitone + obj.GetComponent<KeyController>().octave * 12;
+        RenderSettings.fogDensity = Mathf.Max(0.0f, maxFogDensity - lessFogPerSemi * (realSemitone - baseSemitone));
+        Debug.Log(realSemitone - baseSemitone);
 
         //////////////////////////////////////////////////////////////
         // Set the particle color to the latest interval color
@@ -175,5 +203,6 @@ public class VizController : MonoBehaviour {
         // Special case: one note is just an octave
         int mostRecentInt = recent.Count == 1 ? 0 : GetInterval(recent[recent.Count - 1].semitone, recent[recent.Count - 2].semitone);
         particleSys.startColor = SemiToColor(mostRecentInt);
+        subSys.startColor = particleSys.startColor;
     }
 }

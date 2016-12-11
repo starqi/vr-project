@@ -3,6 +3,8 @@ using System.Collections;
 using UnityEngine.UI;
 using System;
 using UnityEngine.SceneManagement;
+using Photon;
+using MonoBehaviour = UnityEngine.MonoBehaviour;
 
 public enum Instrument
 {
