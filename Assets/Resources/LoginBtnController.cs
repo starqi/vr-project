@@ -16,7 +16,7 @@ public enum Instrument
 // in this class
 public class LoginBtnController : MonoBehaviour
 {
-    public static string loadedName;
+    public static string loadedName = "Player1";
     public static Instrument loadedInstrument;
 
     Text text;
@@ -38,7 +38,7 @@ public class LoginBtnController : MonoBehaviour
 
     public void OnLoginBtnClick()
     {
-        loadedName = text.text == "" ? "Player1" : text.text;
+        loadedName = text.text.Trim() == "" ? "Player1" : text.text;
         loadedInstrument = (Instrument)dropdown.value;
         Debug.Log("Loaded: " + loadedName + ", " + loadedInstrument);
         SceneManager.LoadScene("scene1");

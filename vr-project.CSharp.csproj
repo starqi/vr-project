@@ -259,6 +259,15 @@
     <Compile Include="Assets\Resources\Effects\ImageEffects\Scripts\Twirl.cs" />
     <Compile Include="Assets\Resources\Effects\ImageEffects\Scripts\VignetteAndChromaticAberration.cs" />
     <Compile Include="Assets\Resources\Effects\ImageEffects\Scripts\Vortex.cs" />
+    <Compile Include="Assets\Resources\Environment\Water (Basic)\Scripts\WaterBasic.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\Displace.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\GerstnerDisplace.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\MeshContainer.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\PlanarReflection.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\SpecularLighting.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\Water.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\WaterBase.cs" />
+    <Compile Include="Assets\Resources\Environment\Water\Water\Scripts\WaterTile.cs" />
     <Compile Include="Assets\Resources\LoginBtnController.cs" />
     <Compile Include="Assets\Resources\ParticleSystems\Scripts\AfterburnerPhysicsForce.cs" />
     <Compile Include="Assets\Resources\ParticleSystems\Scripts\ExplosionFireAndDebris.cs" />
@@ -365,6 +374,11 @@
     <None Include="Assets\Resources\Effects\ToonShading\Shaders\ToonBasicOutline.shader" />
     <None Include="Assets\Resources\Effects\ToonShading\Shaders\ToonLit.shader" />
     <None Include="Assets\Resources\Effects\ToonShading\Shaders\ToonLitOutline.shader" />
+    <None Include="Assets\Resources\Environment\Water (Basic)\Shaders\FXWaterBasic.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water\Shaders\FXWaterPro.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water4\Shaders\FXWater4Advanced.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water4\Shaders\FXWater4Simple.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water4\Shaders\WaterInclude.cginc" />
     <None Include="Assets\Resources\ParticleSystems\ParticleSystemsGuidelines.txt" />
     <None Include="Assets\Resources\ParticleSystems\Shaders\PriorityParticleAdd.shader" />
     <None Include="Assets\Resources\ParticleSystems\Shaders\PriorityParticleAddSoft.shader" />

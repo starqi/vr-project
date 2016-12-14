@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Collections;
 using Photon;
 using UnityEngine.UI;
+using System.Linq;
+using UnityEngine.Events;
 
 using Random = UnityEngine.Random; // Name conflict
 
@@ -48,6 +50,19 @@ public class PhotonInitSetup : PunBehaviour
         PhotonNetwork.ConnectUsingSettings("5.4");
         text.text = "Connecting to Photon servers";
         positionIndexToID = new int?[maxPlayers];
+
+        // Set up spectator drop down
+        specList.onValueChanged = new Dropdown.DropdownEvent();
+        specList.onValueChanged.AddListener(OnSpecChanged);
+        specList.options.Add(new Dropdown.OptionData("None"));
+        specList.RefreshShownValue();
+    }
+
+    void OnSpecChanged(int index)
+    {
+        var playerID = ParseSpecEntry(specList.options[index].text);
+        var ctl = instrumentObjLookup[PhotonNetwork.player.ID].GetComponentInChildren<QwertyPianoController>();
+        ctl.ChangeSpec(playerID);
     }
 
     IEnumerator DisplayPingCoroutine()
@@ -101,6 +116,7 @@ public class PhotonInitSetup : PunBehaviour
 
     public Text text, pingText; // Displays some text to user
     public Image image; // Background image covering up the scene
+    public Dropdown specList; // Who to spectate
 
     // Look up instrument game object from Photon's ID field
     Dictionary<int, GameObject> instrumentObjLookup = new Dictionary<int, GameObject>();
@@ -230,6 +246,33 @@ public class PhotonInitSetup : PunBehaviour
         instrumentObjLookup.Remove(otherPlayer.ID);
         // Remove player index
         RemovePlayerIndex(otherPlayer.ID);
+        // Remove spectator entry
+        specList.options.Remove(GetSpecDataFromID(otherPlayer.ID));
+        specList.value = 0; // Select the none option
+        specList.RefreshShownValue();
+    }
+
+    Dropdown.OptionData GetSpecDataFromID(int id)
+    {
+        var list = specList.options.Where(a => {
+            var r = ParseSpecEntry(a.text);
+            return r == null ? false : r.Value == id;
+        });
+        foreach (var niceMemeProgramming in list)
+            return niceMemeProgramming;
+        throw new Exception("Fuck C#");
+    }
+
+    int? ParseSpecEntry(string str)
+    {
+        if (str == "None") return null;
+        var split = str.Split('(', ')');
+        return int.Parse(split[split.Length - 2]);
+    }
+
+    string GetSpecEntryStr(PhotonPlayer player)
+    {
+        return "Spec " + player.name + "(" + player.ID + ")";
     }
 
     // Put camera on top of the instrument
@@ -273,6 +316,10 @@ public class PhotonInitSetup : PunBehaviour
         positionIndexToID[index] = info.sender.ID;
         var instObj = CreateInstrument(instrument, index, info.sender.ID);
         instrumentObjLookup[info.sender.ID] = instObj;
+        // Add to spectator list
+        specList.options.Add(new Dropdown.OptionData() {
+            text = GetSpecEntryStr(info.sender)
+        });
         // We've created all the other instruments
         if (instrumentObjLookup.Count == PhotonNetwork.otherPlayers.Length)
             MakeLocalInstrument(); // Make our own

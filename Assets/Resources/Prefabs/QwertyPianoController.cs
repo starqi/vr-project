@@ -25,41 +25,12 @@ public sealed class QwertyPianoController : InstrumentController<int>
         }
     }
 
-    // Number of groups taken by all prefabs, to see if we've ran out
-    static int numGroupsTaken = 0;
-
     public AudioClip clip; // The sound, eg. piano, guitar
     public AudioMixerGroup masterMixer; // Where to find the mixer groups
-    public string groupPrefix = "G"; // groupPrefix + {0, 1, 2, ...} = group name
-    public int numGroups; // Total # of groups that exist, expect the same for each prefab
-    public string pitchPrefix = "p"; // The prefix given to the pitch parameter of each mixer group
     public Material material = null; // Material of the keys
     public int baseSemiShift = -12; // For shifting higher pitched wav files down
     
-    List<AudioMixerGroup> groups = new List<AudioMixerGroup>(); // Max 3 mixers, for 3 octave support
     int octave = 0; // Current octave out of 3
-
-    // Save the next available mixer for use in this instrument
-    int TakeMixer()
-    {
-        Debug.Assert(numGroupsTaken < numGroups);
-        var number = numGroupsTaken;
-        var group = masterMixer.audioMixer.FindMatchingGroups("Master/" + groupPrefix + number);
-        Debug.Assert(group != null && group.Length == 1);
-        groups.Add(group[0]);
-        numGroupsTaken++;
-        return number;
-    }
-
-    protected override void Start()
-    {
-        base.Start();
-        for (int i = 0; i < 3; ++i) // Take 3 mixers for 3 octaves
-        {
-            var number = TakeMixer();
-            groups[groups.Count - 1].audioMixer.SetFloat(pitchPrefix + number, Mathf.Pow(2.0f, (float)(i - 1)));
-        }
-    }
 
     public override void SetParameters(int octave)
     {
@@ -84,15 +55,18 @@ public sealed class QwertyPianoController : InstrumentController<int>
         }
     }
 
-    public override void NoteEvent(bool isDown, KeyCode note)
+    public override void NoteEvent(bool isDown, KeyCode note, bool isSpectator)
     {
-        GameObject obj;
-        if (!objLookup.TryGetValue(note, out obj)) return;
-        if (obj.GetComponent<KeyController>().note == null) return;
-        var keyCtl = obj.GetComponent<KeyController>();
-        keyCtl.source.outputAudioMixerGroup = groups[octave + 1];
-        keyCtl.octave = octave;
-        base.NoteEvent(isDown, note);
+        if (!isSpectator)
+        {
+            GameObject obj;
+            if (!objLookup.TryGetValue(note, out obj)) return;
+            if (obj.GetComponent<KeyController>().note == null) return;
+            var keyCtl = obj.GetComponent<KeyController>();
+            keyCtl.octave = octave;
+            keyCtl.UpdatePitch();
+        }
+        base.NoteEvent(isDown, note, isSpectator);
     }
 
     protected override void Update()

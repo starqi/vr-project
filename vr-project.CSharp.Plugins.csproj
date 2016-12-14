@@ -194,6 +194,11 @@
     <None Include="Assets\Resources\Effects\ToonShading\Shaders\ToonBasicOutline.shader" />
     <None Include="Assets\Resources\Effects\ToonShading\Shaders\ToonLit.shader" />
     <None Include="Assets\Resources\Effects\ToonShading\Shaders\ToonLitOutline.shader" />
+    <None Include="Assets\Resources\Environment\Water (Basic)\Shaders\FXWaterBasic.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water\Shaders\FXWaterPro.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water4\Shaders\FXWater4Advanced.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water4\Shaders\FXWater4Simple.shader" />
+    <None Include="Assets\Resources\Environment\Water\Water4\Shaders\WaterInclude.cginc" />
     <None Include="Assets\Resources\ParticleSystems\ParticleSystemsGuidelines.txt" />
     <None Include="Assets\Resources\ParticleSystems\Shaders\PriorityParticleAdd.shader" />
     <None Include="Assets\Resources\ParticleSystems\Shaders\PriorityParticleAddSoft.shader" />

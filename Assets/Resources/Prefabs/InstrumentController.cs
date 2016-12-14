@@ -22,23 +22,39 @@ public class KeyController : MonoBehaviour
     public int octave;
     public Vector3 upPos, downPos;
 
-    void Start()
+    public void UpdatePitch()
     {
-        source = GetComponent<AudioSource>();
+        source.pitch = Mathf.Pow(2.0f, (note.semitone + octave * 12.0f) / 12.0f);
     }
 
-    public void Play()
+    public void Play(bool spectating = false)
     {
         Debug.Assert(note != null);
-        // Play sound and animate every duplicate key
-        source.Play();
-        dupes.ForEach(a => a.transform.position = a.GetComponent<KeyController>().downPos);
+        
+        if (spectating)
+        {
+            // Don't play sound because it's already being played by another instrument
+            dupes.ForEach(a => a.GetComponent<MeshRenderer>().material.color = Color.red);
+        }
+        else
+        {
+            // Play sound and animate every duplicate key
+            source.Play();
+            dupes.ForEach(a => a.transform.position = a.GetComponent<KeyController>().downPos);
+        }
     }
 
-    public void Release()
+    public void Release(bool highlight = false)
     {
         Debug.Assert(note != null);
-        dupes.ForEach(a => a.transform.position = a.GetComponent<KeyController>().upPos);
+        if (highlight)
+        {
+            dupes.ForEach(a => a.GetComponent<MeshRenderer>().material.color = note.color);
+        }
+        else
+        {
+            dupes.ForEach(a => a.transform.position = a.GetComponent<KeyController>().upPos);
+        }
     }
 }
 
@@ -71,6 +87,11 @@ public abstract class InstrumentController<P> : MonoBehaviour, NetworkSupport<Ke
     {
         if (isNetworkSetup()) throw new Exception("Network already set up");
         networkRd = new NetworkRedirector<KeyCode, P>(this, ownerID);
+    }
+
+    public void ChangeSpec(int? id)
+    {
+        networkRd.specID = id;
     }
 
     protected virtual void Start()
@@ -126,11 +147,13 @@ public abstract class InstrumentController<P> : MonoBehaviour, NetworkSupport<Ke
 
                     // Add an audio source, copying the note properties
                     var keySrc = cube.AddComponent<AudioSource>();
-                    keySrc.pitch = Mathf.Pow(2.0f, note.semitone / 12.0f);
                     keySrc.playOnAwake = false; // This is by default true
                     keySrc.clip = note.clip;
                     keySrc.spatialize = true;
                     keySrc.spatialBlend = 1.0f;
+
+                    keyCtr.source = keySrc;
+                    keyCtr.UpdatePitch();
                 }
 
                 counter++;
@@ -138,7 +161,7 @@ public abstract class InstrumentController<P> : MonoBehaviour, NetworkSupport<Ke
         }
     }
 
-    public virtual void NoteEvent(bool isDown, KeyCode note)
+    public virtual void NoteEvent(bool isDown, KeyCode note, bool isSpectate)
     {
         GameObject cube;
 
@@ -150,10 +173,13 @@ public abstract class InstrumentController<P> : MonoBehaviour, NetworkSupport<Ke
                 if (ctl.note != null) // If it is a playable key
                 {
                     // Play it and keep the last few played notes
-                    ctl.Play();
-                    if (recentNotes.Count >= numLastNotes) recentNotes.RemoveAt(0);
-                    recentNotes.Add(ctl.note);
-                    noteDown(ctl.note, cube);
+                    ctl.Play(isSpectate);
+                    if (!isSpectate)
+                    {
+                        if (recentNotes.Count >= numLastNotes) recentNotes.RemoveAt(0);
+                        recentNotes.Add(ctl.note);
+                        noteDown(ctl.note, cube);
+                    }
                 }
             }
         }
@@ -165,7 +191,7 @@ public abstract class InstrumentController<P> : MonoBehaviour, NetworkSupport<Ke
                 var ctl = cube.GetComponent<KeyController>();
                 if (ctl.note != null)
                 {
-                    ctl.Release();
+                    ctl.Release(isSpectate);
                 }
             }
         }

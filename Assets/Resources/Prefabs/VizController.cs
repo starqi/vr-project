@@ -195,7 +195,6 @@ public class VizController : MonoBehaviour {
         lightComp.color = new Color(sum.x, sum.y, sum.z);
         int realSemitone = note.semitone + obj.GetComponent<KeyController>().octave * 12;
         RenderSettings.fogDensity = Mathf.Max(0.0f, maxFogDensity - lessFogPerSemi * (realSemitone - baseSemitone));
-        Debug.Log(realSemitone - baseSemitone);
 
         //////////////////////////////////////////////////////////////
         // Set the particle color to the latest interval color
