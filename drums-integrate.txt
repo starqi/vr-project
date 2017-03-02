@@ -1,0 +1,111 @@
+
+
+        Inside drum controller script file…
+
+            Make: enum Drum { Snare, Bass, Tom, Cymbal, … }. This is just a value telling which drum is being played.
+
+        Your drum controller inherits NetworkSupport<Drum, int>
+
+            This means drum notes are labelled as { Snare, Bass, Tom, … } and each drum has an int parameter (You probably don’t need this int, so just pretend it’s not there)
+
+        Your drum controller contains a NetworkRedirector<Drum, int> variable
+
+        Implement NetworkSupport interface by adding these methods in drum controller 
+
+            Public Void SetupNetwork(int ownerID) 
+
+                In here, just set your NetworkRedirector variable:
+
+                myNetworkRedirector =  new NetworkRedirector(this, ownerID)
+
+            Public Void NoteEvent(bool isDown, Drum note, bool isSpectate)
+
+                This is called by the network redirector when a note over the network arrives OR when you play your own local instrument
+
+                Ignore the isDown parameter since it’s not relevant to drums
+
+                Play the drum represented by note. Eg. note = Cymbal
+
+                If isSpectate is true, don’t play any sound, just highlight it red (then unhighlight), you could use Unity’s CreateCoroutine() feature to unhighlight after say 0.5 seconds
+
+            Public Void ChangeSpec(int? id)
+
+                Just do 1 line:
+
+                myNetworkRedirector.specID = id
+
+                If you don’t know, int? Means an int which can be null
+
+                This should actually be part of the NetworkSupport interface, but I forgot to add it
+
+        In OnTriggerEnter, eg. when your drum stick collides
+
+            Cut and paste any sound playing code into NoteEvent, as described above, sound is no longer played via OnTriggerEnter
+
+            Then do this:
+
+            If myNetworkRedirector is null
+
+                Return; (network not set up yet, no sound, unplayable)
+
+            If myNetworkRedirector.isLocal (this is not someone else’s instrument over the internet) call
+
+                myNetworkRedirector.Play(true, which drum? Eg. Drum.Cymbal)
+
+                Remember this “true” argument is ignored for drums, it’s whether a piano key is pressed or lifted
+
+            Otherwise it’s not a local instrument
+
+                Don’t do anything, return;
+
+        PhotonInitSetup manages the multiplayer, so...
+
+        In PhotonInitSetup, method SetupLocalCamera
+
+            Fill in the empty if statement
+
+            Just 1 simple line that fine tunes how much the camera is above the drums
+
+        In PhotonInitSetup, method CreateInstrument
+
+            Fill in the empty if statement
+
+            Copy the Qwerty piano Example, I am guessing it will be like:
+
+                Make drumkit from prefab
+
+                Make a name tag above the drumkit (just copy my code and tweak the position)
+
+                Make a drum visualization object from a prefab
+
+                Link the drum and visualization objects
+
+                Put both drum and viz in one parent game object
+
+                Call drumController.SetupNetwork(ownerID) 
+
+                    ownerID provided to CreateInstrument as a param
+
+        In PhotonInitSetup, method OnSpecChanged(int index)
+
+            This is when a new name is picked in the spectate list
+
+            I didn’t code this one very well, so you want these changes:
+
+            After trying to fetch a QwertyPianoController, see if it is not found
+
+            This would imply it is a DrumController
+
+            Just do: drumController.ChangeSpec(playerID), where playerID is a local var that I already put there
+
+            (Ideally, ChangeSpec should be part of the NetworkSupport interface, but I’m not even sure if GetComponent works with interfaces)
+
+        Now this part, which I’m not even sure how it’s done
+
+            Support both monitor and headset
+
+            The DesktopCameraSomething is the default camera I have
+
+            Easiest way is to just delete it and make it VR only
+            But preferrably, if Vive is not found, it uses the desktop camera...
+
