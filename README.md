@@ -1,10 +1,11 @@
-# VR Trio Project [In progress]
+# VR Trio Project 
+# [PENDING INTEGRATION WITH DRUM FORK]
 [sample]: sample.png
 ![Sample][sample]
 
-Simple project with:
+Proof of concept with:
 - 3 player multiplayer
 - Vive drums
-- QWERTY keyboard piano/guitar and Oculus DK2
-- Harmony visualization
-- Spectate other players
+- QWERTY keyboard piano/guitar
+- Harmonic visualization
+- Spectate other players (teaching)
